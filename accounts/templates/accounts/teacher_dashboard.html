@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teacher Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 1200px; margin: auto; }
+        .logout-link { float: right; }
+        .overview-container { display: flex; justify-content: space-around; text-align: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;}
+        .metric { border: 1px solid #ddd; padding: 15px; border-radius: 8px; width: 30%; box-shadow: 0 2px 4px rgba(0,0,0,0.05); min-width: 200px;}
+        .metric h4 { margin: 0; color: #555; font-size: 1em; }
+        .metric p { font-size: 2em; font-weight: bold; margin: 10px 0 0 0; color: #0056b3; }
+        .section { border: 1px solid #eee; padding: 15px; margin-bottom: 20px; border-radius: 5px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+        .radio-nav { text-align: center; margin-bottom: 20px; }
+        .radio-nav label { padding: 10px 20px; border: 1px solid #ccc; cursor: pointer; border-radius: 5px; }
+        .radio-nav input[type="radio"] { display: none; }
+        .radio-nav input[type="radio"]:checked + label { background-color: #007bff; color: white; }
+    </style>
+</head>
+<body>
+    <a class="logout-link" href="{% url 'logout' %}">Logout</a>
+    <h1>Welcome, {{ user_name }}!</h1>
+    <hr>
+
+    {% if is_detail_view %}
+        <div class="section">
+            <h2>Viewing Questions for {{ detail_info.class }} - {{ detail_info.subject }}</h2>
+            <ol>
+            {% for hw in selected_questions %}
+                <li>{{ hw.question|safe }}</li>
+            {% endfor %}
+            </ol>
+            <br>
+            <a href="{% url 'dashboard' %}">← Back to Summary</a>
+        </div>
+    {% else %}
+        <h2>Your Overview</h2>
+        <div class="overview-container">
+            <div class="metric">
+                <h4>My Salary Points</h4>
+                <p>{{ teacher_stats.salary_points }}</p>
+            </div>
+            <div class="metric">
+                <h4>Total Questions Created</h4>
+                <p>{{ teacher_stats.total_questions }}</p>
+            </div>
+            <div class="metric">
+                <h4>My Rank</h4>
+                <p>#{{ teacher_stats.rank }}</p>
+            </div>
+        </div>
+        <div style="width: 100%; max-width: 700px; margin: auto;">
+            <canvas id="allTeachersChart"></canvas>
+        </div>
+        <hr>
+        
+        <div class="section">
+            <h2>Today's Submitted Homework</h2>
+            {% if todays_homework %}
+                <table>
+                    <thead><tr><th>Class</th><th>Subject</th><th>Action</th></tr></thead>
+                    <tbody>
+                    {% for hw in todays_homework %}
+                        <tr>
+                            <td>{{ hw.question_class }}</td>
+                            <td>{{ hw.subject }}</td>
+                            <td><a href="{% url 'dashboard' %}?view_class={{ hw.question_class }}&view_subject={{ hw.subject }}">View Questions</a></td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>You have not created any homework assignments today.</p>
+            {% endif %}
+        </div>
+        <hr>
+
+        <div class="radio-nav">
+            <input type="radio" id="create" name="dashboard_page" value="create" checked onchange="switchView(this.value)">
+            <label for="create">Create Homework</label>
+            <input type="radio" id="report" name="dashboard_page" value="report" onchange="switchView(this.value)">
+            <label for="report">My Reports</label>
+        </div>
+
+        <div id="create-view" class="view-section">
+            <h2>Create New Homework</h2>
+            <p><a href="{% url 'create_homework' %}"><strong>+ Go to Homework Creation Page</strong></a></p>
+        </div>
+
+        <div id="report-view" class="view-section" style="display:none;">
+            <h2>My Reports</h2>
+            <div class="overview-container">
+                <div class="metric">
+                    <h4>Total Students in School</h4>
+                    <p>{{ total_students }}</p>
+                </div>
+                <div class="metric">
+                    <h4>Total Answers Submitted</h4>
+                    <p>{{ total_answers_submitted }}</p>
+                </div>
+            </div>
+            <hr>
+            
+            <div style="display: flex; gap: 20px;">
+                <div style="flex: 1;">
+                    <h4>Overall Top 3 Students</h4>
+                    <table>
+                    {% for student in overall_top_3 %}
+                        <tr><td>{{ student.student__user_name }} ({{ student.student__user_class }})</td><td>{{ student.average_marks|floatformat:2 }}</td></tr>
+                    {% endfor %}
+                    </table>
+                </div>
+                <div style="flex: 1;">
+                    <h4>Class-wise Top 3 Students</h4>
+                    {% for class, students in classwise_top_3.items %}
+                        <strong>{{ class }}</strong>
+                        <table>
+                        {% for student in students %}
+                            <tr><td>{{ student.student__user_name }}</td><td>{{ student.average_marks|floatformat:2 }}</td></tr>
+                        {% endfor %}
+                        </table>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <script>
+        function switchView(viewId) {
+            document.getElementById('create-view').style.display = 'none';
+            document.getElementById('report-view').style.display = 'none';
+            document.getElementById(viewId + '-view').style.display = 'block';
+        }
+
+        document.addEventListener('DOMContentLoaded', (event) => {
+            const teacherCtx = document.getElementById('allTeachersChart');
+            if (teacherCtx) {
+                new Chart(teacherCtx, { 
+                    type: 'bar', 
+                    data: {
+                        labels: [{% for teacher in all_teachers_ranked %}"{{ teacher.user_name }}",{% endfor %}],
+                        datasets: [{
+                            label: 'Salary Points',
+                            data: [{% for teacher in all_teachers_ranked %}{{ teacher.salary_points }},{% endfor %}],
+                            backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                        }]
+                    }, 
+                    options: { scales: { y: { beginAtZero: true } } } 
+                });
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 400px; margin: auto; }
+        .container { border: 1px solid #eee; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        input { width: 100%; padding: 10px; margin-bottom: 15px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        .messages { text-align: center; margin-bottom: 15px; }
+        .links { text-align: center; margin-top: 15px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Login to Your Dashboard</h2>
+        
+        {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                    <p style="color: {% if message.tags == 'error' %}red{% else %}green{% endif %};">
+                        <strong>{{ message }}</strong>
+                    </p>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <label for="gmail">Gmail ID:</label><br>
+            <input type="email" id="gmail" name="gmail" required>
+            <br>
+            <label for="password">Password:</label><br>
+            <input type="password" id="password" name="password" required>
+            <br><br>
+            <button type="submit">Login</button>
+        </form>
+
+        <div class="links">
+            <p>
+                Don't have an account? <a href="{% url 'register' %}">Register here</a>.
+            </p>
+            <p>
+                <a href="{% url 'forgot_password' %}">Forgot Password?</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

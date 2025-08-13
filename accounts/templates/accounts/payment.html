@@ -1,0 +1,39 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Payment Confirmation</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 500px; margin: auto; text-align: center; }
+        .container { border: 1px solid #eee; padding: 20px; border-radius: 8px; }
+        input { width: 100%; padding: 10px; margin-top: 5px; margin-bottom: 15px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        .info { background-color: #e7f3fe; border-left: 6px solid #2196F3; padding: 10px; margin-bottom: 20px; text-align: left; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Step 2: Payment Confirmation</h2>
+        <p>Your registration for the plan: <strong>{{ user_to_confirm.subscription_plan }}</strong> is almost complete!</p>
+        <hr>
+
+        <h4>Payment Details</h4>
+        <div class="info">
+            Please pay the required amount to the UPI ID below or scan the QR code.
+        </div>
+        <p><strong>UPI ID:</strong> {{ upi_id }}</p>
+        
+        <img src="{% static 'images/Qr logo.jpg' %}" alt="Scan to Pay" width="200">
+        
+        <hr>
+        <form method="post">
+            {% csrf_token %}
+            <label for="transaction_id">
+                After payment, please enter the <strong>Transaction ID</strong> or your <strong>Parent's PhonePe Number</strong> below:
+            </label>
+            <input type="text" name="transaction_id" required>
+            <button type="submit">Submit & Confirm Payment</button>
+        </form>
+    </div>
+</body>
+</html>

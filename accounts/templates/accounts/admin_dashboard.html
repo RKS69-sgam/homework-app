@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Dashboard</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 900px; margin: auto; }
+        .logout-link { float: right; }
+        .section { border: 1px solid #eee; padding: 15px; margin-bottom: 20px; border-radius: 5px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+        .confirm-btn { padding: 5px 10px; background-color: #28a745; color: white; text-decoration: none; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <a class="logout-link" href="{% url 'logout' %}">Logout</a>
+    <h1>Welcome, {{ user_name }}!</h1>
+    <h2>👑 Admin Dashboard</h2>
+    <hr>
+
+    <div class="section">
+        <h3>Pending Student Confirmations</h3>
+        {% if unconfirmed_students %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Class</th>
+                        <th>Plan</th>
+                        <th>Transaction ID</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for student in unconfirmed_students %}
+                    <tr>
+                        <td>{{ student.user_name }}</td>
+                        <td>{{ student.user_class }}</td>
+                        <td>{{ student.subscription_plan }}</td>
+                        <td>{{ student.transaction_id }}</td>
+                        <td><a class="confirm-btn" href="{% url 'confirm_student' student.id %}">Confirm</a></td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No pending student confirmations.</p>
+        {% endif %}
+    </div>
+
+    <div class="section">
+        <h3>Pending Teacher Confirmations</h3>
+        {% if unconfirmed_teachers %}
+            <table>
+                 <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for teacher in unconfirmed_teachers %}
+                    <tr>
+                        <td>{{ teacher.user_name }}</td>
+                        <td>{{ teacher.email }}</td>
+                        <td><a class="confirm-btn" href="{% url 'confirm_teacher' teacher.id %}">Confirm</a></td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No pending teacher confirmations.</p>
+        {% endif %}
+    </div>
+</body>
+</html>

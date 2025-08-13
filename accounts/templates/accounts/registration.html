@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>New Registration</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 500px; margin: auto; }
+        .container { border: 1px solid #eee; padding: 20px; border-radius: 8px; }
+        input, select { width: 100%; padding: 10px; margin-top: 5px; margin-bottom: 15px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>✍️ New User Registration</h2>
+        <form method="post">
+            {% csrf_token %}
+            <label for="user_name">Full Name:</label>
+            <input type="text" name="user_name" required>
+
+            <label for="email">Email / Gmail ID:</label>
+            <input type="email" name="email" required>
+            
+            <label for="mobile_number">Mobile Number:</label>
+            <input type="text" name="mobile_number" required>
+
+            <label for="password">Create Password:</label>
+            <input type="password" name="password" required>
+            
+            <label for="confirm_password">Confirm Password:</label>
+            <input type="password" name="confirm_password" required>
+
+            <label for="security_question">Security Question (for password recovery):</label>
+            <select name="security_question" required>
+                <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
+                <option value="What was the name of your first pet?">What was the name of your first pet?</option>
+                <option value="What city were you born in?">What city were you born in?</option>
+            </select>
+
+            <label for="security_answer">Security Answer:</label>
+            <input type="text" name="security_answer" required>
+
+            <label for="role-select">Register as:</label>
+            <select name="role" id="role-select" onchange="toggleStudentFields()">
+                <option value="Student">Student</option>
+                <option value="Teacher">Teacher</option>
+                <option value="Principal">Principal</option>
+            </select>
+
+            <div id="student-fields">
+                <hr>
+                <h4>Student Details:</h4>
+                <label for="father_name">Father's Name:</label>
+                <input type="text" name="father_name">
+
+                <label for="user_class">Class:</label>
+                <select name="user_class">
+                    {% for i in "56789"|make_list %}
+                        <option value="{{ i }}th">{{ i }}th</option>
+                    {% endfor %}
+                    <option value="10th">10th</option>
+                    <option value="11th">11th</option>
+                    <option value="12th">12th</option>
+                </select>
+                
+                <label for="subscription_plan">Subscription Plan:</label>
+                <select name="subscription_plan">
+                    <option value="₹550 for 6 months (Advance)">₹550 for 6 months (Advance)</option>
+                    <option value="₹1000 for 1 year (Advance)">₹1000 for 1 year (Advance)</option>
+                    <option value="₹100 for 30 days (Subjects Homework Only)">₹100 for 30 days (Subjects Homework Only)</option>
+                </select>
+                
+                <label for="parent_phonepe">Parent's PhonePe Number:</label>
+                <input type="text" name="parent_phonepe">
+            </div>
+
+            <br>
+            <button type="submit">Register</button>
+        </form>
+        <p style="text-align: center; margin-top: 15px;">
+            Already have an account? <a href="{% url 'login' %}">Login here</a>.
+        </p>
+    </div>
+
+    <script>
+        function toggleStudentFields() {
+            var roleSelect = document.getElementById('role-select');
+            var studentFields = document.getElementById('student-fields');
+            var studentInputs = studentFields.querySelectorAll('input, select');
+
+            if (roleSelect.value === 'Student') {
+                studentFields.style.display = 'block';
+                studentInputs.forEach(input => input.required = true);
+            } else {
+                studentFields.style.display = 'none';
+                studentInputs.forEach(input => input.required = false);
+            }
+        }
+        // Run on page load
+        toggleStudentFields();
+    </script>
+</body>
+</html>

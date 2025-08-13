@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Answer Homework</title>
+    <script>
+        // MathJax configuration ko library se pehle rakhen
+        MathJax = {
+            tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+            svg: { fontCache: 'global' }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 900px; margin: auto; }
+        .section-box { border: 1px solid #eee; padding: 15px; margin-bottom: 20px; border-radius: 8px; }
+        .model-answer-box { background-color: #fffbe6; user-select: none; }
+        #timer { font-size: 1.2em; font-weight: bold; color: #d9534f; text-align: center; }
+        #answerForm { display: none; /* Initially hidden */ }
+        textarea { width: 100%; min-height: 150px; font-size: 1.1em; box-sizing: border-box; padding: 10px; border-radius: 5px; }
+        button { padding: 10px 15px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .math-helpers { display: none; /* Hidden by default */ }
+        .symbol-buttons button { background-color: #6c757d; margin-right: 5px; margin-bottom: 5px; }
+        .preview-box { border: 1px solid #ddd; padding: 10px; min-height: 40px; background: #f9f9f9; border-radius: 5px; margin-top: 10px;}
+    </style>
+</head>
+<body>
+    <h1>Answer Homework</h1>
+    <p><a href="{% url 'dashboard' %}">← Back to Dashboard</a></p>
+
+    <div class="section-box">
+        <h4>Question:</h4>
+        <p>{{ question.question|safe }}</p>
+    </div>
+
+    <div id="modelAnswerView">
+        <div class="section-box model-answer-box">
+            <h4>Model Answer (Note this down):</h4>
+            <p>{{ question.model_answer|safe }}</p>
+        </div>
+        <p id="timer">Time remaining: <strong>{{ timer_duration }}</strong> seconds</p>
+    </div>
+
+    <div id="answerForm">
+        <hr>
+        <h3>Your Answer:</h3>
+        <form method="post">
+            {% csrf_token %}
+            <textarea name="student_answer" id="answer-box" oninput="updatePreview()" required>{{ previous_answer }}</textarea>
+            
+            {% if is_math_subject %}
+            <div id="math-keys-container">
+                <p><strong>Helping Keys:</strong></p>
+                <div class="symbol-buttons">
+                <button type="button" onclick="insertSymbol('^2')">x²</button>
+                <button type="button" onclick="insertSymbol('\\sqrt{}')">√</button>
+                <button type="button" onclick="insertSymbol('\\frac{}{}')">Fraction</button>
+                <button type="button" onclick="insertSymbol('^{\\circ}')">°</button>
+                <button type="button" onclick="insertSymbol('\\pm')">±</button>
+                <button type="button" onclick="insertSymbol('\\alpha')">α</button>
+                <button type="button" onclick="insertSymbol('\\beta')">β</button>
+                <button type="button" onclick="insertSymbol('\\theta')">θ</button>
+                </div>
+                <p><strong>Your Answer Preview:</strong></p>
+                <div id="preview-answer" class="preview-box"></div>
+            </div>
+            {% endif %}
+            <br>
+            <button type="submit">Submit Final Answer</button>
+        </form>
+    </div>
+
+    <script>
+        const answerBox = document.getElementById('answer-box');
+        
+        // Timer ka logic
+        let timeLeft = {{ timer_duration }};
+        const timerElement = document.querySelector("#timer strong");
+        const modelAnswerViewDiv = document.getElementById("modelAnswerView");
+        const answerFormDiv = document.getElementById("answerForm");
+        const countdown = setInterval(() => {
+            timeLeft--;
+            timerElement.textContent = timeLeft;
+            if (timeLeft <= 0) {
+                clearInterval(countdown);
+                modelAnswerViewDiv.style.display = 'none'; // Sirf Model Answer ko hide karen
+                answerFormDiv.style.display = 'block';
+            }
+        }, 1000);
+
+        // Math Helping Keys ka logic (sirf agar zaroori ho)
+        {% if is_math_subject %}
+            answerBox.addEventListener('keydown', function(event) {
+                if (event.key === ' ') {
+                    event.preventDefault();
+                    insertSymbol('\\ ');
+                }
+            });
+
+            function insertSymbol(symbol) {
+                const startPos = answerBox.selectionStart;
+                answerBox.value = answerBox.value.substring(0, startPos) + symbol + answerBox.value.substring(startPos);
+                answerBox.focus();
+                if (symbol.includes('{}')) {
+                    answerBox.selectionStart = startPos + symbol.indexOf('{') + 1;
+                    answerBox.selectionEnd = startPos + symbol.indexOf('{') + 1;
+                } else {
+                    answerBox.selectionStart = startPos + symbol.length;
+                    answerBox.selectionEnd = startPos + symbol.length;
+                }
+                updatePreview();
+            }
+
+            function updatePreview() {
+                const previewBox = document.getElementById('preview-answer');
+                previewBox.innerHTML = '';
+                if (answerBox.value.trim() !== '') {
+                    // MathJax se preview banayein
+                    MathJax.tex2chtmlPromise(answerBox.value).then((node) => {
+                        previewBox.innerHTML = '';
+                        previewBox.appendChild(node);
+                    });
+                }
+            }
+            // Page load hone par initial preview
+            document.addEventListener('DOMContentLoaded', updatePreview);
+        {% endif %}
+    </script>
+</body>
+</html>

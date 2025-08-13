@@ -1,0 +1,11 @@
+# Credentials
+*.json
+
+# Database
+db.sqlite3
+
+# Python cache
+__pycache__/
+
+# Virtual environment
+venv/

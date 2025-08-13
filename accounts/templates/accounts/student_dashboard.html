@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Student Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 900px; margin: auto; }
+        .logout-link { float: right; }
+        .messages { text-align: center; margin-bottom: 15px; }
+        .overview-container { display: flex; justify-content: space-around; text-align: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;}
+        .metric { border: 1px solid #ddd; padding: 15px; border-radius: 8px; width: 30%; box-shadow: 0 2px 4px rgba(0,0,0,0.05); min-width: 200px;}
+        .metric h4 { margin: 0; color: #555; font-size: 1em; }
+        .metric p { font-size: 2em; font-weight: bold; margin: 10px 0 0 0; color: #0056b3; }
+        .tabs { margin-bottom: 20px; }
+        .tabs button { padding: 10px 15px; border: 1px solid #ccc; background: #f0f0f0; cursor: pointer; border-radius: 5px; margin-right: 5px; }
+        .tabs button.active { background: #007bff; color: white; }
+        .homework-item { border: 1px solid #eee; padding: 15px; margin-bottom: 10px; border-radius: 5px; }
+        .subject { font-weight: bold; color: #0056b3; }
+        .chart-container { display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 20px; }
+        .chart { flex: 1; min-width: 300px; }
+        .warning-message { color: orange; font-weight: bold; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <a class="logout-link" href="{% url 'logout' %}">Logout</a>
+    <h1>Welcome, {{ user_name }}!</h1>
+    <hr>
+
+    {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+                {% if not 'question_' in message.tags %}
+                    <p style="color: {% if message.tags == 'error' %}red{% elif message.tags == 'warning' %}orange{% else %}green{% endif %};">
+                        <strong>{{ message }}</strong>
+                    </p>
+                {% endif %}
+            {% endfor %}
+        </div>
+        <hr>
+    {% endif %}
+
+    <h2>Your Performance Overview</h2>
+    <div class="overview-container">
+        <div class="metric">
+            <h4>Total Homework Assigned</h4>
+            <p>{{ total_assigned }}</p>
+        </div>
+        <div class="metric">
+            <h4>Homework Completed</h4>
+            <p>{{ total_completed }}</p>
+        </div>
+        <div class="metric">
+            <h4>Overall Average Score</h4>
+            <p>{{ average_score|floatformat:2 }} / 5</p>
+        </div>
+    </div>
+    <div class="chart-container">
+        <div class="chart">
+            <h4>Homework Status</h4>
+            <canvas id="statusChart"></canvas>
+        </div>
+        <div class="chart">
+            <h4>Your Growth Over Time</h4>
+            <canvas id="growthChart"></canvas>
+        </div>
+    </div>
+    <div class="chart-container">
+        <div class="chart" style="width: 100%;">
+            <h4>Average Marks by Subject</h4>
+            <canvas id="performanceChart"></canvas>
+        </div>
+    </div>
+    <hr>
+
+    <div class="tabs">
+        <button id="pendingBtn" class="active" onclick="openTab('pending', this)">Pending Homework</button>
+        <button id="revisionBtn" onclick="openTab('revision', this)">Revision Zone</button>
+        <button id="leaderboardBtn" onclick="openTab('leaderboard', this)">Leaderboard</button>
+    </div>
+
+    <div id="pending" class="tab-content">
+        <h2>Pending Homework</h2>
+        {% for hw in pending_homework %}
+            <div class="homework-item">
+                <p><span class="subject">{{ hw.subject }}</span> (Due: {{ hw.due_date }})</p>
+                <p><strong>Question:</strong> {{ hw.question|safe }}</p>
+                
+                {% if hw.previous_answer %}
+                    <div style="background-color: #ffe8e8; padding: 10px; border-radius: 5px; margin-top: 10px;">
+                        <p><strong>Your Previous Answer:</strong> {{ hw.previous_answer }}</p>
+                    </div>
+                {% endif %}
+                
+                {% for message in messages %}
+                    {% if message.extra_tags == 'question_'|add:hw.id|stringformat:"s" %}
+                        <p class="warning-message">{{ message }}</p>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if hw.remarks %}
+                    <p class="warning-message"><strong>Remark:</strong> {{ hw.remarks }}</p>
+                {% endif %}
+                <a href="{% url 'answer' hw.id %}">Answer This Question</a>
+            </div>
+            <hr>
+        {% empty %}
+            <p>🎉 Good job! You have no pending homework.</p>
+        {% endfor %}
+    </div>
+
+    <div id="revision" class="tab-content" style="display:none;">
+        <h2>Revision Zone (Good, Very Good & Outstanding Answers)</h2>
+        {% for ans in revision_answers %}
+            <div class="homework-item">
+                <p><span class="subject">{{ ans.question.subject }}</span> (Submitted on: {{ ans.date }})</p>
+                <p><strong>Question:</strong> {{ ans.question.question|safe }}</p>
+                <p><strong>Your Answer:</strong> {{ ans.answer }}</p>
+                <p><strong>Grade:</strong> {{ ans.marks }}/5</p>
+                {% if ans.remarks %}
+                    <p style="color: green;"><strong>Feedback:</strong> {{ ans.remarks }}</p>
+                {% endif %}
+            </div>
+            <hr>
+        {% empty %}
+            <p>You have no answers in your revision zone yet.</p>
+        {% endfor %}
+    </div>
+
+    <div id="leaderboard" class="tab-content" style="display:none;">
+        <h2>Class Leaderboard</h2>
+        <h4>Top 3 Performers</h4>
+        {% for student in top_3_students %}
+            <p>{{ student.rank }}. {{ student.student__user_name }} - Avg Score: {{ student.average_marks|floatformat:2 }}</p>
+        {% endfor %}
+        
+        <div style="width: 80%; margin: auto; margin-top: 20px;">
+            <canvas id="leaderboardChart"></canvas>
+        </div>
+        <hr>
+        {% if my_rank_info %}
+            <h4>Your Rank</h4>
+            <p>You are rank #{{ my_rank_info.rank }} with an average score of {{ my_rank_info.average_marks|floatformat:2 }}.</p>
+        {% endif %}
+    </div>
+
+    <script>
+        // --- SCRIPT FOR TABS ---
+        function openTab(tabName, elmnt) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+            tablinks = document.getElementsByClassName("tabs")[0].getElementsByTagName("button");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+            document.getElementById(tabName).style.display = "block";
+            elmnt.className += " active";
+        }
+        
+        // --- SCRIPT FOR CHARTS ---
+        document.addEventListener('DOMContentLoaded', (event) => {
+            // Open the 'pending' tab by default
+            document.getElementById("pendingBtn").click();
+
+            // Homework Status Chart (Donut Chart)
+            const statusCtx = document.getElementById('statusChart');
+            if (statusCtx) {
+                new Chart(statusCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Completed', 'Pending'],
+                        datasets: [{ data: [{{ total_completed }}, {{ total_pending }}], backgroundColor: ['#28a745', '#ffc107'] }]
+                    },
+                });
+            }
+
+            // Growth Chart (Line Chart)
+            const growthCtx = document.getElementById('growthChart');
+            if (growthCtx && {% if growth_chart_data %}true{% else %}false{% endif %}) {
+                new Chart(growthCtx, { 
+                    type: 'line', 
+                    data: {
+                        labels: [{% for item in growth_chart_data %}"{{ item.date|date:'d-m' }}",{% endfor %}],
+                        datasets: [{
+                            label: 'Your Marks',
+                            data: [{% for item in growth_chart_data %}{{ item.marks }},{% endfor %}],
+                            borderColor: 'rgb(75, 192, 192)',
+                            tension: 0.1
+                        }]
+                    }, 
+                    options: { scales: { y: { beginAtZero: true, max: 5 } } } 
+                });
+            }
+            
+            // Performance Chart (Bar Chart)
+            const performanceCtx = document.getElementById('performanceChart');
+            if (performanceCtx && {% if chart_data %}true{% else %}false{% endif %}) {
+                new Chart(performanceCtx, { 
+                    type: 'bar', 
+                    data: {
+                        labels: [{% for item in chart_data %}"{{ item.question__subject }}",{% endfor %}],
+                        datasets: [{
+                            label: 'Average Marks',
+                            data: [{% for item in chart_data %}{{ item.average_marks|floatformat:2 }},{% endfor %}],
+                            backgroundColor: ['rgba(255, 99, 132, 0.7)', 'rgba(54, 162, 235, 0.7)', 'rgba(255, 206, 86, 0.7)', 'rgba(75, 192, 192, 0.7)', 'rgba(153, 102, 255, 0.7)'],
+                        }]
+                    }, 
+                    options: { scales: { y: { beginAtZero: true, max: 5 } } } 
+                });
+            }
+
+            // Leaderboard Chart (Bar Chart)
+            const leaderboardCtx = document.getElementById('leaderboardChart');
+            if (leaderboardCtx && {% if top_3_students %}true{% else %}false{% endif %}) {
+                new Chart(leaderboardCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: [{% for student in top_3_students %}"{{ student.student__user_name }}",{% endfor %}],
+                        datasets: [{
+                            label: 'Average Marks',
+                            data: [{% for student in top_3_students %}{{ student.average_marks }},{% endfor %}],
+                            backgroundColor: ['rgba(255, 99, 132, 0.7)', 'rgba(54, 162, 235, 0.7)', 'rgba(255, 206, 86, 0.7)'],
+                        }]
+                    },
+                    options: { scales: { y: { beginAtZero: true, max: 5 } } }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

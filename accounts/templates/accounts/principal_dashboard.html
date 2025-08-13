@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Principal Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 1200px; margin: auto; }
+        .logout-link { float: right; }
+        .overview-container { display: flex; justify-content: space-around; text-align: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;}
+        .metric { border: 1px solid #ddd; padding: 15px; border-radius: 8px; width: 30%; box-shadow: 0 2px 4px rgba(0,0,0,0.05); min-width: 200px;}
+        .metric h4 { margin: 0; color: #555; font-size: 1em; }
+        .metric p { font-size: 2em; font-weight: bold; margin: 10px 0 0 0; color: #0056b3; }
+        .report-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .report-card { border: 1px solid #eee; padding: 15px; border-radius: 5px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+    </style>
+</head>
+<body>
+    <a class="logout-link" href="{% url 'logout' %}">Logout</a>
+    <h1>Welcome, {{ user_name }}!</h1>
+    <h2>🏛️ Principal Dashboard</h2>
+    <hr>
+
+    <div class="overview-container">
+        <div class="metric">
+            <h4>Total Students</h4>
+            <p>{{ total_students }}</p>
+        </div>
+        <div class="metric">
+            <h4>Total Teachers</h4>
+            <p>{{ total_teachers }}</p>
+        </div>
+        <div class="metric">
+            <h4>Total Homework Created</h4>
+            <p>{{ total_questions_created }}</p>
+        </div>
+    </div>
+    <hr>
+    
+    <h2>Live School Analytics</h2>
+    <div class="report-grid">
+        <div class="report-card">
+            <h4>Subject-wise Performance</h4>
+            <canvas id="subjectChart"></canvas>
+        </div>
+        <div class="report-card">
+            <h4>Class-wise Performance</h4>
+            <canvas id="classChart"></canvas>
+        </div>
+        <div class="report-card">
+            <h4>Today's Teacher Activity</h4>
+            <table>
+            {% for teacher in questions_created_today %}
+                <tr>
+                    <td>{{ teacher.uploaded_by__user_name }}</td>
+                    <td>{{ teacher.count }} Questions Created</td>
+                </tr>
+            {% empty %}
+                <tr><td>No homework was created today.</td></tr>
+            {% endfor %}
+            </table>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', (event) => {
+            // Subject Performance Chart
+            const subjectCtx = document.getElementById('subjectChart');
+            if (subjectCtx) {
+                new Chart(subjectCtx, { 
+                    type: 'bar', 
+                    data: {
+                        labels: [{% for item in subject_performance %}"{{ item.question__subject }}",{% endfor %}],
+                        datasets: [{
+                            label: 'Average Marks',
+                            data: [{% for item in subject_performance %}{{ item.average_marks|floatformat:2 }},{% endfor %}],
+                            backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                        }]
+                    }, 
+                    options: { indexAxis: 'y', scales: { x: { beginAtZero: true, max: 5 } } } 
+                });
+            }
+
+            // Class Performance Chart
+            const classCtx = document.getElementById('classChart');
+            if (classCtx) {
+                new Chart(classCtx, { 
+                    type: 'bar', 
+                    data: {
+                        labels: [{% for item in class_performance %}"{{ item.student__user_class }}",{% endfor %}],
+                        datasets: [{
+                            label: 'Average Marks',
+                            data: [{% for item in class_performance %}{{ item.average_marks|floatformat:2 }},{% endfor %}],
+                            backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                        }]
+                    }, 
+                    options: { scales: { y: { beginAtZero: true, max: 5 } } } 
+                });
+            }
+        });
+    </script>
+</body>
+</html>

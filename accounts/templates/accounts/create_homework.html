@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Homework</title>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 900px; margin: auto; }
+        form { border: 1px solid #eee; padding: 20px; border-radius: 5px; }
+        select, textarea { width: 100%; padding: 10px; margin-bottom: 10px; box-sizing: border-box; font-size: 1.1em; }
+        button { padding: 10px 15px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .math-helpers { display: none; }
+        .symbol-buttons button { background-color: #6c757d; margin-right: 5px; margin-bottom: 5px; }
+        #preview { border: 1px solid #ddd; padding: 10px; min-height: 40px; background: #f9f9f9; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Create New Homework Assignment</h1>
+    <p><a href="{% url 'dashboard' %}">← Back to Dashboard</a></p>
+
+    <form method="post">
+        {% csrf_token %}
+        <label for="subject-select">Subject:</label>
+        <select name="subject" id="subject-select" onchange="toggleMathHelpers()">
+            {% for sub in subjects %}
+                <option value="{{ sub }}">{{ sub }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="class-select">Class:</label>
+        <select name="question_class" id="class-select">
+            {% for cls in classes %}
+                <option value="{{ cls }}">{{ cls }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="question-box">Question:</label>
+        <textarea name="question" id="question-box" oninput="updatePreview('question')" required></textarea>
+        <div id="question-preview-container" class="math-helpers">
+            <p><strong>Question Preview:</strong></p>
+            <div id="preview-question"></div>
+        </div>
+
+        <label for="model-answer-box">Model Answer:</label>
+        <textarea name="model_answer" id="model-answer-box" oninput="updatePreview('model-answer')" required></textarea>
+        <div id="model-answer-preview-container" class="math-helpers">
+            <p><strong>Model Answer Preview:</strong></p>
+            <div id="preview-model-answer"></div>
+        </div>
+
+        <div id="math-keys-container" class="math-helpers">
+            <p><strong>Helping Keys:</strong></p>
+            <div class="symbol-buttons">
+                <button type="button" onclick="insertSymbol('^2')">x²</button>
+                <button type="button" onclick="insertSymbol('\\sqrt{}')">√</button>
+                <button type="button" onclick="insertSymbol('\\frac{}{}')">Fraction</button>
+                <button type="button" onclick="insertSymbol('^{\\circ}')">°</button>
+                <button type="button" onclick="insertSymbol('\\pm')">±</button>
+                <button type="button" onclick="insertSymbol('\\alpha')">α</button>
+                <button type="button" onclick="insertSymbol('\\beta')">β</button>
+                <button type="button" onclick="insertSymbol('\\theta')">θ</button>
+            </div>
+        </div>
+
+        <br>
+        <button type="submit">Create Assignment</button>
+    </form>
+
+    <script>
+        const subjectSelect = document.getElementById('subject-select');
+        const questionBox = document.getElementById('question-box');
+        const modelAnswerBox = document.getElementById('model-answer-box');
+        let activeTextBox = questionBox;
+
+        // --- YEH NAYA JAVASCRIPT LOGIC HAI ---
+        const mathSubjects = ['Math', 'Physics', 'Chemistry'];
+
+        function handleSpace(event) {
+            if (mathSubjects.includes(subjectSelect.value)) {
+                if (event.key === ' ' || event.keyCode === 32) {
+                    event.preventDefault(); // Rokta hai sadharan space ko
+                    insertSymbol('\\ '); // Backslash ke saath space daalta hai
+                }
+            }
+        }
+
+        questionBox.addEventListener('keydown', handleSpace);
+        modelAnswerBox.addEventListener('keydown', handleSpace);
+        // --- END NAYA LOGIC ---
+
+        questionBox.onfocus = function() { activeTextBox = this; };
+        modelAnswerBox.onfocus = function() { activeTextBox = this; };
+
+        function toggleMathHelpers() {
+            const displayStyle = mathSubjects.includes(subjectSelect.value) ? 'block' : 'none';
+            document.querySelectorAll('.math-helpers').forEach(el => el.style.display = displayStyle);
+        }
+
+        function insertSymbol(symbol) {
+            const startPos = activeTextBox.selectionStart;
+            activeTextBox.value = activeTextBox.value.substring(0, startPos) + symbol + activeTextBox.value.substring(startPos);
+            activeTextBox.focus();
+            if (symbol.includes('{}')) {
+                activeTextBox.selectionStart = startPos + symbol.indexOf('{') + 1;
+                activeTextBox.selectionEnd = startPos + symbol.indexOf('{') + 1;
+            } else {
+                activeTextBox.selectionStart = startPos + symbol.length;
+                activeTextBox.selectionEnd = startPos + symbol.length;
+            }
+            updatePreview(activeTextBox.id.split('-')[0]);
+        }
+        
+        function updatePreview(boxType) {
+            const inputBox = document.getElementById(boxType + '-box');
+            const previewBox = document.getElementById('preview-' + boxType);
+            previewBox.innerHTML = '';
+            if (inputBox.value.trim() !== '') {
+                const math = MathJax.tex2chtml(inputBox.value);
+                previewBox.appendChild(math);
+                MathJax.startup.document.clear();
+                MathJax.startup.document.updateDocument();
+            }
+        }
+        toggleMathHelpers(); // Shuruaat mein check karne ke liye
+    </script>
+</body>
+</html>
