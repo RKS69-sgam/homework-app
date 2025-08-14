@@ -15,3 +15,4 @@ gspread
 oauth2client
 firebase-admin
 scikit-learn
+psycopg2-binary
