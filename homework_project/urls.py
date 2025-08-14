@@ -15,12 +15,16 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path, include # <-- Add 'include'
-from django.views.generic import RedirectView # <-- Add this import
+from django.urls import path, include
+from django.views.generic import RedirectView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('accounts.urls')), # <-- Add this line
-    # This line redirects the main URL ("/") to the login page
-    path('', RedirectView.as_view(url='/accounts/login/', permanent=True)), # <-- Add this line
+    
+    # --- YEH BADLAV KIYA GAYA HAI ---
+    # Ab sabhi account-related URLs "/accounts/" se shuru honge
+    path('accounts/', include('accounts.urls')),
+    
+    # Yah mukhya URL ("/") ko seedhe login page par bhej dega
+    path('', RedirectView.as_view(url='/accounts/login/', permanent=True)),
 ]
