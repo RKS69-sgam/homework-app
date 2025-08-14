@@ -24,4 +24,3 @@ urlpatterns = [
     # This line redirects the main URL ("/") to the login page
     path('', RedirectView.as_view(url='/accounts/login/', permanent=True)), # <-- Add this line
 ]
-]
